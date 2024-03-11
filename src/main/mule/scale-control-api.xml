@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:oauth="http://www.mulesoft.org/schema/mule/oauth" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd  http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd http://www.mulesoft.org/schema/mule/oauth http://www.mulesoft.org/schema/mule/oauth/current/mule-oauth.xsd http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+    <http:listener-config name="scale-control-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="scale-control-api-config" api="resource::6ae7c80a-9576-487c-a52f-dc850bba15b8:scale-control-api:1.0.7:raml:zip:scale-control-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="f5371adc-dffa-41da-b964-2be8f5e5d258">
+        <http:request-connection protocol="HTTPS" host="anypoint.mulesoft.com">
+            <http:authentication>
+                <http:basic-authentication username="${anypoint.username}" password="${anypoint.password}" />
+            </http:authentication>
+        </http:request-connection>
+    </http:request-config>
+    <configuration-properties doc:name="Configuration properties" doc:id="339d694f-86ad-4ae9-8ce2-ab86b521a36e" file="config\config-local.yaml" />
+	<flow name="scale-control-api-main">
+        <http:listener config-ref="scale-control-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="scale-control-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="scale-control-api-console">
+        <http:listener config-ref="scale-control-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="scale-control-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\scaleControl:application\json:scale-control-api-config">
+        <ee:transform doc:name="Set variables" doc:id="850d4118-3aed-447e-95a5-cb0379eedac3">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="v_organization_id"><![CDATA[attributes.headers.organization_id default "6ae7c80a-9576-487c-a52f-dc850bba15b8"]]></ee:set-variable>
+                <ee:set-variable variableName="v_environment_id"><![CDATA[attributes.headers.environment_id default "3e5189f6-22ef-4b05-ad38-504657748688"]]></ee:set-variable>
+                <ee:set-variable variableName="v_application_name"><![CDATA[attributes.queryParams.application_name default "myth-sf-eu-customers-sys-api-v2"]]></ee:set-variable>
+                <ee:set-variable variableName="v_number_of_workers"><![CDATA[attributes.queryParams.number_of_workers default 1]]></ee:set-variable>
+                <ee:set-variable variableName="v_worker_size"><![CDATA[attributes.queryParams.worker_size]]></ee:set-variable>
+                <ee:set-variable variableName="v_set_threshold"><![CDATA[attributes.queryParams.set_threshold default 2]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <http:request method="GET" doc:name="Get workers" doc:id="10e1e1ed-9928-4ad1-b4f5-65987ce3df5b" config-ref="HTTP_Request_configuration" path="#[&quot;/cloudhub/api/v2/applications/&quot; ++ (vars.v_application_name)]" target="v_workers" targetValue="#[payload.workers]">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : vars.v_environment_id,
+	"X-ANYPNT-ORG-ID" : vars.v_organization_id
+}]]]></http:headers>
+        </http:request>
+        <http:request method="GET" doc:name="Get CPU Consumption" doc:id="9676ade0-22f4-498d-9043-653b59087a8b" config-ref="HTTP_Request_configuration" path="#[&quot;/cloudhub/api/v2/applications/&quot; ++ (vars.v_application_name) ++ &quot;/dashboardStats&quot;]" target="v_cpuConsumption">
+            <http:headers><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : vars.v_environment_id,
+	"X-ANYPNT-ORG-ID" : vars.v_organization_id
+}]]]></http:headers>
+            <http:query-params><![CDATA[#[%dw 2.0
+import * from dw::core::Periods
+output application/java
+---
+{
+	"statistics" : "cpu",
+	"startDate" : ((now()-minutes(1))>>"UTC") as String,
+	"interval": 60000
+}]]]></http:query-params>
+        </http:request>
+        <ee:transform doc:name="Identify CPU Consumption" doc:id="60429618-1abb-4630-83f8-9d71fe86ba94">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="v_cpuUsage"><![CDATA[%dw 2.0
+output application/json
+var eventId=keysOf(vars.v_cpuConsumption..cpu[0])[0] default ""
+---
+//if (isEmpty(vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId" filter ($ > vars.v_set_threshold))) "low" else "high"
+if (avg(vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId") > vars.v_set_threshold) "high" else "low"
+
+// If the average of the cpu consumption is higher than the threshold, it will increase one worker. If the avg is lower than the threshold, it will decrease one worker.]]></ee:set-variable>
+                <ee:set-variable variableName="v_worker_size"><![CDATA[%dw 2.0
+output application/java
+---
+if (isEmpty(vars.v_worker_size)) vars.v_workers."type".weight as String default "0.1" else vars.v_worker_size]]></ee:set-variable>
+                <ee:set-variable variableName="v_number_of_workers"><![CDATA[%dw 2.0
+output application/java
+---
+vars.v_workers.amount default 1]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" doc:name="Logger - CPU Consumption" doc:id="dc046030-9c82-46b4-b23d-58362d4df0f6" message='#[%dw 2.0&#10;output application/json&#10;var eventId=keysOf(vars.v_cpuConsumption..cpu[0])[0] default ""&#10;---&#10;{&#10; cpuUsage: vars.v_cpuUsage,&#10; cpuConsumption: vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId",&#10; avgCpuConsumption: avg(vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId"),&#10; workerSize: vars.v_worker_size,&#10; workerNumber: vars.v_number_of_workers&#10;}]' />
+        <choice doc:name="Choice" doc:id="475f7a1f-5ad8-43ff-be6c-0e8bcf8c0a37">
+            <when expression="#[vars.v_cpuUsage == &quot;high&quot;]">
+                <http:request method="PUT" doc:name="Increase the number of app workers" doc:id="72ce3f1c-0b2a-4335-9ea8-b9d4fd1b5696" config-ref="HTTP_Request_configuration" path="#[&quot;/cloudhub/api/v2/applications/&quot; ++ (vars.v_application_name)]">
+                    <http:body><![CDATA[#[%dw 2.0
+output application/json
+var v_worker_type = vars.v_worker_size match {
+	case "0.1" -> {"name": "MICRO", "memory": "500 MB memory"}
+	case "0.2" -> {"name": "SMALL", "memory": "1 GB memory"}
+	case "1" -> {"name": "MEDIUM", "memory": "1.5 GB memory"}
+	case "2" -> {"name": "LARGE", "memory": "3.5 GB memory"}
+	case "4" -> {"name": "XLARGE", "memory": "7.5 GB memory"}
+	case "8" -> {"name": "XXLARGE", "memory": "15 GB memory"}
+	case "16" -> {"name": "4XLARGE", "memory": "32 GB memory"}
+	else -> {"name": "MICRO", "memory": "500 MB memory"}
+}
+---
+{
+  "workers": {
+    "amount": if (vars.v_number_of_workers < 8) (vars.v_number_of_workers + 1) else vars.v_number_of_workers,
+    "type": {
+      "name": v_worker_type.name,
+      "weight": vars.v_worker_size as Number default 0.1,
+      "cpu": if (vars.v_worker_size == "1") (vars.v_worker_size ++ " vCore") else (vars.v_worker_size ++ " vCores"),
+      "memory": v_worker_type.memory
+    }
+  }
+}]]]></http:body>
+                    <http:headers><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : vars.v_environment_id,
+	"X-ANYPNT-ORG-ID" : vars.v_organization_id
+}]]]></http:headers>
+                </http:request>
+            </when>
+            <otherwise>
+                <http:request method="PUT" doc:name="Decrease the number of app workers" doc:id="0c042040-56cb-49b2-aab6-c87e24d4d227" config-ref="HTTP_Request_configuration" path="#[&quot;/cloudhub/api/v2/applications/&quot; ++ (vars.v_application_name)]">
+                    <http:body><![CDATA[#[%dw 2.0
+output application/json
+var v_worker_type = vars.v_worker_size match {
+	case "0.1" -> {"name": "MICRO", "memory": "500 MB memory"}
+	case "0.2" -> {"name": "SMALL", "memory": "1 GB memory"}
+	case "1" -> {"name": "MEDIUM", "memory": "1.5 GB memory"}
+	case "2" -> {"name": "LARGE", "memory": "3.5 GB memory"}
+	case "4" -> {"name": "XLARGE", "memory": "7.5 GB memory"}
+	case "8" -> {"name": "XXLARGE", "memory": "15 GB memory"}
+	case "16" -> {"name": "4XLARGE", "memory": "32 GB memory"}
+	else -> {"name": "MICRO", "memory": "500 MB memory"}
+}
+---
+{
+  "workers": {
+    "amount": if (vars.v_number_of_workers > 1) (vars.v_number_of_workers - 1) else vars.v_number_of_workers,
+    "type": {
+      "name": v_worker_type.name,
+      "weight": vars.v_worker_size as Number default 0.1,
+      "cpu": if (vars.v_worker_size == "1") (vars.v_worker_size ++ " vCore") else (vars.v_worker_size ++ " vCores"),
+      "memory": v_worker_type.memory
+    }
+  }
+}]]]></http:body>
+                    <http:headers><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : vars.v_environment_id,
+	"X-ANYPNT-ORG-ID" : vars.v_organization_id
+}]]]></http:headers>
+                </http:request>
+            </otherwise>
+        </choice>
+        <http:request method="GET" doc:name="Logout" doc:id="196caa1d-1760-4cfa-9104-2bfab6a600d1" config-ref="HTTP_Request_configuration" path="/accounts/api/logout" target="v_logout" />
+        <ee:transform doc:name="Transform Message" doc:id="77f6f734-02e8-411d-a37a-510ea463f75e">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"application_name": payload.domain,
+	"status": payload.status,
+	"workers": payload.workers
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\dashboardStats:scale-control-api-config">
+		<ee:transform doc:name="Set variables" doc:id="c24c1489-56c8-4cd0-8df8-b7df54fbdf9e" >
+			<ee:message />
+			<ee:variables >
+				<ee:set-variable variableName="v_organization_id" ><![CDATA[attributes.headers.organization_id default "6ae7c80a-9576-487c-a52f-dc850bba15b8"]]></ee:set-variable>
+				<ee:set-variable variableName="v_environment_id" ><![CDATA[attributes.headers.environment_id default "3e5189f6-22ef-4b05-ad38-504657748688"]]></ee:set-variable>
+				<ee:set-variable variableName="v_application_name" ><![CDATA[attributes.queryParams.application_name default "myth-sf-eu-customers-sys-api-v2"]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request method="GET" doc:name="Get workers" doc:id="2a96d28f-3829-4929-b4ff-0f6a726e212e" config-ref="HTTP_Request_configuration" path='#["/cloudhub/api/v2/applications/" ++ (vars.v_application_name)]' target="v_workers" targetValue="#[payload.workers]">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : vars.v_environment_id,
+	"X-ANYPNT-ORG-ID" : vars.v_organization_id
+}]]]></http:headers>
+		</http:request>
+		<http:request method="GET" doc:name="Get CPU Consumption" doc:id="5d4ce0f9-cc2a-46d3-9cef-fcb69a7a4186" config-ref="HTTP_Request_configuration" path='#["/cloudhub/api/v2/applications/" ++ (vars.v_application_name) ++ "/dashboardStats"]' target="v_cpuConsumption" >
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"X-ANYPNT-ENV-ID" : vars.v_environment_id,
+	"X-ANYPNT-ORG-ID" : vars.v_organization_id
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[%dw 2.0
+import * from dw::core::Periods
+output application/java
+---
+{
+	"statistics" : "cpu",
+	"startDate" : ((now()-minutes(1))>>"UTC") as String,
+	"interval": 60000
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="0465f179-56ed-4e15-9a31-6f651acb7a7b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var eventId=keysOf(vars.v_cpuConsumption..cpu[0])[0] default ""
+---
+{
+ workerSize: vars.v_workers."type".weight default 0.1,
+ workerNumber: vars.v_workers.amount default 1,
+ cpuConsumption: vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+</mule>

@@ -1,0 +1,4 @@
+# Anypoint Platform Credential
+anypoint:
+  username: "Your Anypoint Username"
+  password: "Your Anypoint Password"
