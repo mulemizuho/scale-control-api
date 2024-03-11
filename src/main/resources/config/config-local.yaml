@@ -2,3 +2,5 @@
 anypoint:
   username: "Your Anypoint Username"
   password: "Your Anypoint Password"
+worker:
+  threshold: "3"

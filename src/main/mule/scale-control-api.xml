@@ -131,7 +131,15 @@ output application/json
             </on-error-propagate>
         </error-handler>
     </flow>
-    <flow name="put:\scaleControl:application\json:scale-control-api-config">
+    <flow name="scale-control-apiFlow" doc:id="5ae4119c-f70a-4560-a291-da82e6a753b1" >
+		<scheduler doc:name="Scheduler" doc:id="666bef92-9c06-40f8-8da8-2c8226ab0750" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="MINUTES"/>
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="Flow Reference" doc:id="819dd05e-77b9-400d-82e8-b93e1d4e89c2" name="put:\scaleControl:application\json:scale-control-api-config"/>
+	</flow>
+	<flow name="put:\scaleControl:application\json:scale-control-api-config" doc:id="23b050e7-3440-45ff-9949-a6897dc6b0c8">
         <ee:transform doc:name="Set variables" doc:id="850d4118-3aed-447e-95a5-cb0379eedac3">
             <ee:message />
             <ee:variables>
@@ -140,7 +148,7 @@ output application/json
                 <ee:set-variable variableName="v_application_name"><![CDATA[attributes.queryParams.application_name default "myth-sf-eu-customers-sys-api-v2"]]></ee:set-variable>
                 <ee:set-variable variableName="v_number_of_workers"><![CDATA[attributes.queryParams.number_of_workers default 1]]></ee:set-variable>
                 <ee:set-variable variableName="v_worker_size"><![CDATA[attributes.queryParams.worker_size]]></ee:set-variable>
-                <ee:set-variable variableName="v_set_threshold"><![CDATA[attributes.queryParams.set_threshold default 2]]></ee:set-variable>
+                <ee:set-variable variableName="v_set_threshold"><![CDATA[attributes.queryParams.set_threshold default p('worker.threshold') as Number]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
         <http:request method="GET" doc:name="Get workers" doc:id="10e1e1ed-9928-4ad1-b4f5-65987ce3df5b" config-ref="HTTP_Request_configuration" path="#[&quot;/cloudhub/api/v2/applications/&quot; ++ (vars.v_application_name)]" target="v_workers" targetValue="#[payload.workers]">
@@ -189,7 +197,7 @@ output application/java
 vars.v_workers.amount default 1]]></ee:set-variable>
             </ee:variables>
         </ee:transform>
-        <logger level="INFO" doc:name="Logger - CPU Consumption" doc:id="dc046030-9c82-46b4-b23d-58362d4df0f6" message='#[%dw 2.0&#10;output application/json&#10;var eventId=keysOf(vars.v_cpuConsumption..cpu[0])[0] default ""&#10;---&#10;{&#10; cpuUsage: vars.v_cpuUsage,&#10; cpuConsumption: vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId",&#10; avgCpuConsumption: avg(vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId"),&#10; workerSize: vars.v_worker_size,&#10; workerNumber: vars.v_number_of_workers&#10;}]' />
+        <logger level="INFO" doc:name="Logger - CPU Consumption" doc:id="dc046030-9c82-46b4-b23d-58362d4df0f6" message='#[%dw 2.0&#10;output application/json&#10;var eventId=keysOf(vars.v_cpuConsumption..cpu[0])[0] default ""&#10;---&#10;{&#10; cpuUsage: vars.v_cpuUsage,&#10; cpuConsumption: vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId",&#10; avgCpuConsumption: avg(vars.v_cpuConsumption.workerStatistics.statistics.cpu."$eventId"),&#10; threshold: vars.v_set_threshold,&#10; workerSize: vars.v_worker_size,&#10; workerNumber: vars.v_number_of_workers&#10;}]' />
         <choice doc:name="Choice" doc:id="475f7a1f-5ad8-43ff-be6c-0e8bcf8c0a37">
             <when expression="#[vars.v_cpuUsage == &quot;high&quot;]">
                 <http:request method="PUT" doc:name="Increase the number of app workers" doc:id="72ce3f1c-0b2a-4335-9ea8-b9d4fd1b5696" config-ref="HTTP_Request_configuration" path="#[&quot;/cloudhub/api/v2/applications/&quot; ++ (vars.v_application_name)]">

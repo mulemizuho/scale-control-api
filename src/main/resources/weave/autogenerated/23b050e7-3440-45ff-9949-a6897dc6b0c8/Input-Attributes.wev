@@ -1,0 +1,31 @@
+%dw 2.0
+
+type auto_23b050e7_3440_45ff_9949_a6897dc6b0c8_Input_Attributes = {|
+  clientCertificate?: {|
+    publicKey?: {|  |}, 
+    "type"?: String, 
+    encoded?: Binary
+  |}, 
+  headers: {|
+    organization_id: String, 
+    environment_id: String
+  |}, 
+  listenerPath: String, 
+  method: String, 
+  queryParams: {|
+    application_name: String, 
+    worker_size?: "1" | "2" | "0.1" | "0.2" | "4" | "16" | "8", 
+    number_of_workers?: Number, 
+    set_threshold?: Number
+  |}, 
+  queryString: String, 
+  relativePath: String, 
+  remoteAddress: String, 
+  requestPath: String, 
+  requestUri: String, 
+  scheme: String, 
+  uriParams: {|  |}, 
+  version: String, 
+  localAddress: String
+|}
+
