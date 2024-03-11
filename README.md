@@ -19,3 +19,8 @@ It is recommended to increase the threshold value to something more meaningful t
 For example:
 If my Mule Application is running on 1 vCore and 2 workers and the average CPU utilisation is greater than 50% then add another worker. 
 For this example set the threshold to 50.
+
+
+Disclaimer:
+This is for demonstration purposes only. 
+For production requirements, please consider using CloudHub's Autoscaling Features: https://docs.mulesoft.com/cloudhub/autoscaling-in-cloudhub
